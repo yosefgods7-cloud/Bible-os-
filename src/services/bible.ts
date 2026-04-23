@@ -45,7 +45,13 @@ export async function fetchAndCacheChapter(version: string, book: string, chapte
       text: v.text.trim()
     }));
 
-    await db.verses.bulkAdd(toSave);
+    // Wrap add in transaction to prevent concurrent duplicate rows
+    await db.transaction('rw', db.verses, async () => {
+       const confirmCount = await db.verses.where({ version, book, chapter }).count();
+       if (confirmCount === 0) {
+          await db.verses.bulkAdd(toSave);
+       }
+    });
     return true;
   } catch (error) {
     console.error("Bible fetch error:", error);

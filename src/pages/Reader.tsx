@@ -90,9 +90,9 @@ export function Reader() {
         const response = await analyzeWord("this verse's key words", verseText);
         setAiResponse({ type: 'Deep Dive', text: response });
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      setAiResponse({ type: 'Error', text: "Could not load AI module." });
+      setAiResponse({ type: 'Error', text: e.message || "Could not load AI module." });
     } finally {
       setIsAiLoading(false);
     }
@@ -157,30 +157,59 @@ export function Reader() {
 
   const handleBookmark = async (verseNum: number, isBookmarked: boolean) => {
       if (isBookmarked) {
-          const existing = await db.bookmarks.where({ book, chapter: currentChapter, verse: verseNum }).first();
-          if (existing && existing.id) await db.bookmarks.delete(existing.id);
+          const existings = await db.bookmarks.where({ book, chapter: currentChapter, verse: verseNum }).toArray();
+          for (const ex of existings) {
+             if (ex.id) await db.bookmarks.delete(ex.id);
+          }
       } else {
-          await db.bookmarks.add({ book, chapter: currentChapter, verse: verseNum, timestamp: new Date().toISOString() });
+          const count = await db.bookmarks.where({ book, chapter: currentChapter, verse: verseNum }).count();
+          if (count === 0) {
+             await db.bookmarks.add({ book, chapter: currentChapter, verse: verseNum, timestamp: new Date().toISOString() });
+          }
       }
   };
 
   const toggleTTS = () => {
-    if (!verses) return;
+    if (!verses || verses.length === 0) return;
     if (isPlaying) {
        window.speechSynthesis.cancel();
        setIsPlaying(false);
-    } else {
-       const text = verses.map(v => v.text).join(" ");
-       const utterance = new SpeechSynthesisUtterance(text);
-       utterance.onend = () => setIsPlaying(false);
+       return;
+    } 
+    
+    // Stop any stuck speech
+    window.speechSynthesis.cancel();
+
+    // To cleanly bypass Chrome/Mobile 15-second limits and maintain the 
+    // user-activation gesture, we synchronously queue each verse individually
+    // directly inside the click handler, relying on the native TTS queue.
+    
+    verses.forEach((v, i) => {
+       if (!v.text.trim()) return;
+       const utterance = new SpeechSynthesisUtterance(v.text);
+       
+       if (i === verses.length - 1) {
+           utterance.onend = () => setIsPlaying(false);
+       }
+       
+       utterance.onerror = (e) => { 
+           console.error("TTS Error:", e);
+           setIsPlaying(false); 
+       };
+       
+       // Fire synchronously without setTimeout to honor strict gesture policies
        window.speechSynthesis.speak(utterance);
-       setIsPlaying(true);
-    }
+    });
+    
+    setIsPlaying(true);
   };
 
   // cleanup TTS
   useEffect(() => {
-     return () => window.speechSynthesis.cancel();
+     window.speechSynthesis.cancel();
+    return () => {
+       window.speechSynthesis.cancel();
+    };
   }, []);
 
   return (
@@ -245,7 +274,7 @@ export function Reader() {
           {!verses?.length && isFetchingChapter && <p className="text-center font-sans text-sacred-text-secondary text-sm opacity-70 animate-pulse mt-12">Loading chapter...</p>}
           {!verses?.length && !isFetchingChapter && <p className="text-center font-sans text-sacred-text-secondary text-sm opacity-70 mt-12">Chapter not available offline.</p>}
           
-           {verses?.map((v) => {
+           {verses?.filter((v, i, a) => a.findIndex(t => t.verse === v.verse) === i).map((v) => {
             const highlightRecord = highlights?.find(h => h.verse === v.verse);
             const isHighlighted = !!highlightRecord;
             const highlightClass = isHighlighted ? HIGHLIGHT_COLORS.find(c => c.id === highlightRecord.color)?.bgClass || 'bg-[#C9A84C]/20' : '';

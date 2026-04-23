@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { ChevronLeft, Check, Settings as SettingsIcon, Book, Languages, Download, Moon, Upload, Search, Edit3 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ChevronLeft, Check, Settings as SettingsIcon, Book, Languages, Download, Moon, Upload, Search, Edit3, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { db } from "@/db";
 import { searchDictionary } from "@/services/ai";
@@ -68,8 +68,8 @@ export function More() {
     try {
        const res = await searchDictionary(dictTerm.trim());
        setDictResult(res);
-    } catch (e) {
-       setDictResult("Unable to search dictionary at this time.");
+    } catch (e: any) {
+       setDictResult(e.message || "Unable to search dictionary at this time.");
     } finally {
        setIsDictLoading(false);
     }
@@ -217,6 +217,45 @@ export function More() {
         </div>
       );
     }
+
+    if (activeSection === 'API Usage Tracker') {
+      const usageCount = parseInt(localStorage.getItem('apiUsageCount') || '0', 10);
+      return (
+        <div className="flex flex-col flex-1 p-6 md:p-0 space-y-6 animate-in slide-in-from-right duration-300 pb-24 md:pb-8 max-w-3xl mx-auto w-full">
+          <header className="md:pt-4 flex items-center gap-4">
+             <button onClick={() => setActiveSection(null)} className="p-2 -ml-2 rounded-full hover:bg-sacred-surface-dark transition-colors">
+                <ChevronLeft className="w-6 h-6 text-sacred-text-primary" />
+             </button>
+             <h1 className="text-3xl font-light text-sacred-text-primary">API Usage Tracker</h1>
+          </header>
+          
+          <div className="mt-6 flex flex-col items-center justify-center bg-sacred-surface-dark border border-sacred-gold/10 rounded-xl p-10 shadow-lg">
+             <Activity className="w-12 h-12 text-sacred-gold mb-6" />
+             <div className="text-6xl font-bold text-sacred-text-primary mb-2">{usageCount}</div>
+             <p className="text-sacred-text-secondary font-sans text-sm tracking-wide lowercase">Total Gemini AI Tokens / Calls Computed</p>
+             
+             <div className="mt-8 border-t border-sacred-gold/10 pt-8 w-full max-w-sm">
+                <div className="flex justify-between items-center text-sm font-sans mb-4">
+                   <span className="text-sacred-text-secondary">Status</span>
+                   <span className="text-sacred-gold-light">Active</span>
+                </div>
+                <div className="flex justify-between items-center text-sm font-sans mb-4">
+                   <span className="text-sacred-text-secondary">Current Limit</span>
+                   <span className="text-sacred-text-primary">Free Tier</span>
+                </div>
+                <button onClick={() => {
+                   if(window.confirm('Reset your API usage counter?')) {
+                     localStorage.setItem('apiUsageCount', '0');
+                     setActiveSection(null);
+                   }
+                }} className="w-full mt-6 py-3 border border-red-500/30 text-red-400 rounded hover:bg-red-500/10 transition-colors uppercase tracking-widest text-[10px] font-bold">
+                   Reset Usage Counter
+                </button>
+             </div>
+          </div>
+        </div>
+      );
+    }
   }
 
   const menus = [
@@ -224,7 +263,8 @@ export function More() {
     { name: 'Journal & Annotations', icon: Edit3, action: () => navigate('/journal') },
     { name: 'Bible Versions', icon: Book, active: preferredVersion },
     { name: 'Lexicon Offline', icon: Languages, action: () => navigate('/dictionary') },
-    { name: 'AI Deep Dive', icon: Search },
+    { name: 'AI Deep Dive', icon: Search, action: () => navigate('/ai-deep-dive') },
+    { name: 'API Usage Tracker', icon: Activity },
     { name: 'Appearance', icon: Moon },
     { name: 'Export Data', icon: Download, action: handleExport },
     { name: 'Import Data', icon: Upload, action: () => fileInputRef.current?.click() }

@@ -12,6 +12,7 @@ import { Habits } from '@/pages/Habits';
 import { More } from '@/pages/More';
 import { Journal } from '@/pages/Journal';
 import { OfflineDictionary } from '@/pages/OfflineDictionary';
+import { AiDeepDive } from '@/pages/AiDeepDive';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="more" element={<More />} />
           <Route path="journal" element={<Journal />} />
           <Route path="dictionary" element={<OfflineDictionary />} />
+          <Route path="ai-deep-dive" element={<AiDeepDive />} />
         </Route>
         {/* Fullscreen pages like Reader */}
         <Route path="/read" element={<Reader />} />

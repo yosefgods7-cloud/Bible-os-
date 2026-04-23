@@ -3,6 +3,35 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db";
 import { Link } from "react-router-dom";
 import { Bookmark, Edit3, Highlighter, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+function SelectableVerse({ book, chapter, verse, itemRef } : {book: string, chapter: number, verse: number, itemRef: any}) {
+  const [expanded, setExpanded] = useState(false);
+  const verseData = useLiveQuery(() => db.verses.where({ book, chapter, verse }).first(), [book, chapter, verse]);
+
+  return (
+    <div className="bg-sacred-card-dark p-4 rounded-xl border border-sacred-gold/10 relative">
+      <div className="flex justify-between items-center mb-1">
+         <Link to="/read" onClick={() => { localStorage.setItem('lastBook', book); localStorage.setItem('lastChapter', chapter.toString()); }} className="text-sacred-gold-light font-bold hover:underline flex items-center gap-2">
+            {book} {chapter}:{verse}
+         </Link>
+         <div className="flex items-center gap-3">
+            {itemRef.color && <div className="w-4 h-4 rounded-full border border-white/20" style={{backgroundColor: itemRef.color === 'sacred-gold' ? '#C9A84C' : itemRef.color}}></div>}
+            {!itemRef.color && <Bookmark className="w-4 h-4 text-sacred-gold" />}
+            <button onClick={() => setExpanded(!expanded)} className="p-1 text-sacred-text-secondary hover:text-sacred-text-primary transition rounded-full hover:bg-sacred-surface-light/10">
+               <ChevronRight className={cn("w-4 h-4 transition-transform", expanded ? "rotate-90" : "rotate-0")} />
+            </button>
+         </div>
+      </div>
+      {expanded && (
+        <div className="text-sm text-sacred-text-primary mt-3 p-3 bg-sacred-surface-dark rounded animate-in fade-in zoom-in-95 duration-200 shadow-inner">
+           {verseData ? verseData.text : <span className="opacity-50 italic">Chapter not downloaded yet...</span>}
+        </div>
+      )}
+      <p className="text-[10px] text-sacred-text-secondary mt-3">{new Date(itemRef.timestamp).toLocaleDateString()}</p>
+    </div>
+  );
+}
 
 export function Journal() {
   const [activeTab, setActiveTab] = useState<'highlights'|'bookmarks'|'notes'>('notes');
@@ -70,24 +99,11 @@ export function Journal() {
         ))}
 
         {activeTab === 'highlights' && filterItems(highlights || []).map(h => (
-           <div key={h.id} className="bg-sacred-card-dark p-5 rounded-xl border border-sacred-gold/10">
-              <div className="flex justify-between items-center mb-1">
-                 <Link to="/read" onClick={() => { localStorage.setItem('lastBook', h.book); localStorage.setItem('lastChapter', h.chapter.toString()); }} className="text-sacred-gold-light font-bold hover:underline">
-                    {h.book} {h.chapter}:{h.verse}
-                 </Link>
-                 <div className="w-4 h-4 rounded-full border border-white/20" style={{backgroundColor: h.color === 'sacred-gold' ? '#C9A84C' : h.color}}></div>
-              </div>
-              <p className="text-[10px] text-sacred-text-secondary mt-3">{new Date(h.timestamp).toLocaleDateString()}</p>
-           </div>
+           <SelectableVerse key={h.id} book={h.book} chapter={h.chapter} verse={h.verse} itemRef={h} />
         ))}
 
         {activeTab === 'bookmarks' && filterItems(bookmarks || []).map(b => (
-           <div key={b.id} className="bg-sacred-card-dark p-4 rounded-xl border border-sacred-gold/10 flex justify-between items-center">
-              <Link to="/read" onClick={() => { localStorage.setItem('lastBook', b.book); localStorage.setItem('lastChapter', b.chapter.toString()); }} className="text-sacred-gold-light font-bold hover:underline">
-                  {b.book} {b.chapter}:{b.verse}
-              </Link>
-              <Bookmark className="w-4 h-4 text-sacred-gold" />
-           </div>
+           <SelectableVerse key={b.id} book={b.book} chapter={b.chapter} verse={b.verse} itemRef={b} />
         ))}
 
         {filterItems(activeTab === 'notes' ? (notes||[]) : activeTab === 'highlights' ? (highlights||[]) : (bookmarks||[])).length === 0 && (

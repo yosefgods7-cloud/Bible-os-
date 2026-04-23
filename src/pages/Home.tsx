@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db";
 import { Link } from "react-router-dom";
 import { Flame, Star, BookOpen, Quote, ChevronRight } from "lucide-react";
+import { getAiSuggestion } from "@/services/ai";
 
 function FidelityHeatmap() {
   const history = useLiveQuery(() => db.history.toArray(), []);
@@ -47,6 +48,13 @@ export function Home() {
      return notes.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 1);
   });
   const recentNote = recentNoteArr && recentNoteArr.length > 0 ? recentNoteArr[0] : null;
+
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+
+  useEffect(() => {
+     let lastBook = localStorage.getItem('lastBook') || 'Genesis';
+     getAiSuggestion(lastBook).then(res => setAiSuggestion(res));
+  }, []);
 
   const verseOfTheDayHeader = "For I know the plans I have for you... — Jeremiah 29:11"; 
   const verseOfTheDayBody = "\"I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit; apart from me you can do nothing.\"";
@@ -169,8 +177,8 @@ export function Home() {
             <div className="w-2 h-2 rounded-full bg-sacred-gold-light animate-pulse"></div>
             <span className="text-xs font-bold uppercase tracking-widest text-sacred-gold-light">AI Guide Suggestion</span>
           </div>
-          <p className="text-sm text-sacred-text-primary leading-relaxed relative z-10">
-            "You've been studying the life of Joseph. Consider reading <span className="text-sacred-gold font-semibold">Psalm 105</span> today to see how the psalmist recounts God's faithfulness during those years of trial."
+          <p className="text-sm text-sacred-text-primary leading-relaxed relative z-10 min-h-[40px]">
+            {aiSuggestion ? aiSuggestion : <span className="opacity-50 animate-pulse">Analyzing your latest reading logs...</span>}
           </p>
           <button className="w-full py-2 border border-sacred-gold/50 rounded text-xs uppercase tracking-widest font-bold text-sacred-text-primary hover:bg-sacred-gold/10 transition-colors relative z-10">
             Generate Devotional

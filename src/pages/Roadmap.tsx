@@ -29,9 +29,9 @@ export function Roadmap() {
        });
        setShowAiModal(false);
        setPromptStr("");
-    } catch (e) {
+    } catch (e: any) {
        console.error("Error generating roadmap:", e);
-       alert("Failed to generate roadmap. Please try again.");
+       alert(e.message || "Failed to generate roadmap. Please try again.");
     } finally {
        setIsGenerating(false);
     }
