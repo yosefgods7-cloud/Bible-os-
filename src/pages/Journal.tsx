@@ -1,0 +1,100 @@
+import { useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/db";
+import { Link } from "react-router-dom";
+import { Bookmark, Edit3, Highlighter, ChevronRight } from "lucide-react";
+
+export function Journal() {
+  const [activeTab, setActiveTab] = useState<'highlights'|'bookmarks'|'notes'>('notes');
+  const [search, setSearch] = useState("");
+
+  const highlights = useLiveQuery(() => db.highlights.toArray());
+  const bookmarks = useLiveQuery(() => db.bookmarks.toArray());
+  const notes = useLiveQuery(() => db.notes.toArray());
+
+  const filterItems = (items: any[]) => {
+     if (!items) return [];
+     if (!search) return items;
+     return items.filter(i => 
+       i.book.toLowerCase().includes(search.toLowerCase()) || 
+       (i.text && i.text.toLowerCase().includes(search.toLowerCase()))
+     );
+  };
+
+  return (
+    <div className="flex flex-col flex-1 p-6 md:p-0 space-y-6 animate-in fade-in duration-700 pb-24 md:pb-8 max-w-3xl mx-auto w-full">
+      <header className="md:pt-4">
+        <h1 className="text-3xl font-light text-sacred-text-primary">Journal</h1>
+        <p className="text-[10px] uppercase tracking-widest text-sacred-text-secondary mt-2">
+          Your personal annotations and records.
+        </p>
+      </header>
+      
+      <div className="flex space-x-2">
+         <input 
+            type="text" 
+            placeholder="Search book or text..." 
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="flex-1 bg-sacred-surface-dark border border-sacred-gold/30 rounded-lg px-4 py-2 text-sm text-sacred-text-primary outline-none focus:border-sacred-gold transition"
+         />
+      </div>
+
+      <div className="flex space-x-4 border-b border-sacred-surface-light/10">
+        <button 
+          onClick={() => setActiveTab('notes')}
+          className={`pb-2 text-sm uppercase tracking-widest ${activeTab === 'notes' ? 'text-sacred-gold border-b-2 border-sacred-gold font-bold' : 'text-sacred-text-secondary hover:text-sacred-text-primary'}`}
+        >Notes</button>
+        <button 
+          onClick={() => setActiveTab('highlights')}
+          className={`pb-2 text-sm uppercase tracking-widest ${activeTab === 'highlights' ? 'text-sacred-gold border-b-2 border-sacred-gold font-bold' : 'text-sacred-text-secondary hover:text-sacred-text-primary'}`}
+        >Highlights</button>
+        <button 
+          onClick={() => setActiveTab('bookmarks')}
+          className={`pb-2 text-sm uppercase tracking-widest ${activeTab === 'bookmarks' ? 'text-sacred-gold border-b-2 border-sacred-gold font-bold' : 'text-sacred-text-secondary hover:text-sacred-text-primary'}`}
+        >Bookmarks</button>
+      </div>
+
+      <div className="flex flex-col space-y-4">
+        {activeTab === 'notes' && filterItems(notes || []).map(note => (
+           <div key={note.id} className="bg-sacred-card-dark p-5 rounded-xl border border-sacred-gold/10">
+              <div className="flex justify-between items-center mb-3">
+                 <Link to="/read" onClick={() => { localStorage.setItem('lastBook', note.book); localStorage.setItem('lastChapter', note.chapter.toString()); }} className="text-sacred-gold-light font-bold hover:underline">
+                    {note.book} {note.chapter}:{note.verse}
+                 </Link>
+                 <Edit3 className="w-4 h-4 text-sacred-text-secondary" />
+              </div>
+              <p className="text-sacred-text-primary bg-sacred-surface-dark p-3 rounded">{note.text}</p>
+              <p className="text-[10px] text-sacred-text-secondary mt-3">{new Date(note.timestamp).toLocaleDateString()}</p>
+           </div>
+        ))}
+
+        {activeTab === 'highlights' && filterItems(highlights || []).map(h => (
+           <div key={h.id} className="bg-sacred-card-dark p-5 rounded-xl border border-sacred-gold/10">
+              <div className="flex justify-between items-center mb-1">
+                 <Link to="/read" onClick={() => { localStorage.setItem('lastBook', h.book); localStorage.setItem('lastChapter', h.chapter.toString()); }} className="text-sacred-gold-light font-bold hover:underline">
+                    {h.book} {h.chapter}:{h.verse}
+                 </Link>
+                 <div className="w-4 h-4 rounded-full border border-white/20" style={{backgroundColor: h.color === 'sacred-gold' ? '#C9A84C' : h.color}}></div>
+              </div>
+              <p className="text-[10px] text-sacred-text-secondary mt-3">{new Date(h.timestamp).toLocaleDateString()}</p>
+           </div>
+        ))}
+
+        {activeTab === 'bookmarks' && filterItems(bookmarks || []).map(b => (
+           <div key={b.id} className="bg-sacred-card-dark p-4 rounded-xl border border-sacred-gold/10 flex justify-between items-center">
+              <Link to="/read" onClick={() => { localStorage.setItem('lastBook', b.book); localStorage.setItem('lastChapter', b.chapter.toString()); }} className="text-sacred-gold-light font-bold hover:underline">
+                  {b.book} {b.chapter}:{b.verse}
+              </Link>
+              <Bookmark className="w-4 h-4 text-sacred-gold" />
+           </div>
+        ))}
+
+        {filterItems(activeTab === 'notes' ? (notes||[]) : activeTab === 'highlights' ? (highlights||[]) : (bookmarks||[])).length === 0 && (
+          <p className="text-sacred-text-secondary text-sm text-center mt-12 opacity-50">Nothing saved yet.</p>
+        )}
+      </div>
+
+    </div>
+  );
+}

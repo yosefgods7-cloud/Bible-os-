@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,ital,wght@0,300..800;1,300..800&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Crimson Pro", ui-serif, Georgia, serif;
+
+  --color-sacred-bg-dark: var(--theme-bg-dark);
+  --color-sacred-surface-dark: var(--theme-surface-dark);
+  --color-sacred-card-dark: var(--theme-card-dark);
+  --color-sacred-gold: var(--theme-gold);
+  --color-sacred-gold-light: var(--theme-gold-light);
+  --color-sacred-text-primary: var(--theme-text-primary);
+  --color-sacred-text-secondary: var(--theme-text-secondary);
+  --color-sacred-success: var(--theme-success);
+  --color-sacred-warning: var(--theme-warning);
+  --color-sacred-surface-light: var(--theme-surface-light);
+
+  --color-background: var(--theme-bg-dark);
+  --color-foreground: var(--theme-text-primary);
+}
+
+@layer base {
+  :root {
+    /* Theme 1: Charcoal (Dark 1 - Original Default) */
+    --theme-bg-dark: #0F0E0D;
+    --theme-surface-dark: #1A1917;
+    --theme-card-dark: #242220;
+    --theme-gold: #C9A84C;
+    --theme-gold-light: #E8C97A;
+    --theme-text-primary: #F2EDE4;
+    --theme-text-secondary: #9A9189;
+    --theme-success: #4A9B6F;
+    --theme-warning: #C25B3F;
+    --theme-surface-light: #EDEAE2;
+  }
+
+  .theme-navy {
+    /* Theme 2: Navy (Dark 2) */
+    --theme-bg-dark: #070B14;
+    --theme-surface-dark: #0D1426;
+    --theme-card-dark: #151E32;
+    --theme-gold: #A1B6E5;
+    --theme-gold-light: #C4D3F5;
+    --theme-text-primary: #EEF2F8;
+    --theme-text-secondary: #8A9BBF;
+    --theme-success: #528B80;
+    --theme-warning: #C1666B;
+    --theme-surface-light: #E2E8F0;
+  }
+
+  .theme-plum {
+    /* Theme 3: Plum (Dark 3) */
+    --theme-bg-dark: #140A10;
+    --theme-surface-dark: #1F101A;
+    --theme-card-dark: #291523;
+    --theme-gold: #D8A5B8;
+    --theme-gold-light: #F0C9D8;
+    --theme-text-primary: #F8EEF2;
+    --theme-text-secondary: #BFA0AE;
+    --theme-success: #6B8E73;
+    --theme-warning: #D17A7A;
+    --theme-surface-light: #F3E5EC;
+  }
+
+  .theme-parchment {
+    /* Theme 4: Parchment (Light 1) */
+    --theme-bg-dark: #F7F3EC;
+    --theme-surface-dark: #EDEAE2;
+    --theme-card-dark: #E2DCCF;
+    --theme-gold: #A77E2A;
+    --theme-gold-light: #C9A84C;
+    --theme-text-primary: #1C1A17;
+    --theme-text-secondary: #6A6158;
+    --theme-success: #296645;
+    --theme-warning: #A33A20;
+    --theme-surface-light: #D9D2C4;
+  }
+
+  .theme-alabaster {
+    /* Theme 5: Alabaster (Light 2) */
+    --theme-bg-dark: #FFFFFF;
+    --theme-surface-dark: #F4F5F7;
+    --theme-card-dark: #EAECEF;
+    --theme-gold: #60799E;
+    --theme-gold-light: #A1B4D0;
+    --theme-text-primary: #101520;
+    --theme-text-secondary: #687385;
+    --theme-success: #367A60;
+    --theme-warning: #B24646;
+    --theme-surface-light: #DFE3EC;
+  }
+
+  .theme-sand {
+    /* Theme 6: Sand (Light 3) */
+    --theme-bg-dark: #FDF9F1;
+    --theme-surface-dark: #F4EEDF;
+    --theme-card-dark: #EAE1CB;
+    --theme-gold: #966F42;
+    --theme-gold-light: #C39D71;
+    --theme-text-primary: #211B13;
+    --theme-text-secondary: #7A6956;
+    --theme-success: #4C7741;
+    --theme-warning: #B3523B;
+    --theme-surface-light: #DDCFBA;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-color: var(--theme-bg-dark);
+    color: var(--theme-text-primary);
+  }
+}
