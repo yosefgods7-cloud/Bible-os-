@@ -9,6 +9,50 @@ export function OfflineDictionary() {
 
   const categories = ["All", "Aramaic", "Greek", "Hebrew", "Location", "Tradition", "History"];
 
+  const allTerms = useMemo(() => {
+    return [...OFFLINE_DICTIONARY]
+      .map(t => t.term)
+      .sort((a, b) => b.length - a.length);
+  }, []);
+
+  const renderDefinition = (text: string, currentTerm: string) => {
+    if (!text) return null;
+    
+    // Create regex matching any of the dictionary terms, as whole words. case-insensitive.
+    const escapedTerms = allTerms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const regex = new RegExp(`\\b(${escapedTerms.join('|')})\\b`, 'gi');
+    
+    const parts = text.split(regex);
+    
+    return parts.map((part, index) => {
+      if (index % 2 !== 0) {
+        // It's a matched term
+        // Ignore if it's the exact same term as the current entry to prevent self-linking
+        if (part.toLowerCase() === currentTerm.toLowerCase()) {
+           return <span key={index} className="font-bold text-sacred-text-primary">{part}</span>;
+        }
+
+        const actualTerm = allTerms.find(t => t.toLowerCase() === part.toLowerCase()) || part;
+        
+        return (
+          <button
+            key={index}
+            className="text-sacred-gold hover:underline font-medium hover:text-sacred-gold-light focus:outline-none transition-colors mx-0.5 inline-block"
+            onClick={(e) => {
+              e.preventDefault();
+              setSearch(actualTerm);
+              setActiveCategory('All');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
+            {part}
+          </button>
+        );
+      }
+      return part;
+    });
+  };
+
   const filteredEntries = useMemo(() => {
     return OFFLINE_DICTIONARY.filter(entry => {
       const matchesSearch = entry.term.toLowerCase().includes(search.toLowerCase()) || 
@@ -76,7 +120,7 @@ export function OfflineDictionary() {
                     </div>
                  </div>
                  <p className="text-sacred-text-primary leading-relaxed mt-4">
-                    {entry.definition}
+                    {renderDefinition(entry.definition, entry.term)}
                  </p>
                  {entry.references && entry.references.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-sacred-surface-light/10 text-xs text-sacred-text-secondary uppercase tracking-widest flex items-center gap-2">
