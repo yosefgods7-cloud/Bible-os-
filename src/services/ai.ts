@@ -1,6 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+function getAiInstance(): GoogleGenAI {
+  const customKey = localStorage.getItem('customGeminiKey');
+  if (customKey && customKey.trim().length > 10) {
+    return new GoogleGenAI({ apiKey: customKey.trim() });
+  }
+  return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+}
 
 const THEOLOGICAL_GUARDRAILS = `You are the AI core of BibleOS.
 Rules:
@@ -41,6 +47,7 @@ Text: ${verseText}
 Provide theological explanation, historical context, and practical application.`;
 
   try {
+    const ai = getAiInstance();
     const response = await ai.models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: contents,
@@ -62,6 +69,7 @@ export async function generateDevotional(passage: string, theme?: string): Promi
 It should be 200-400 words, including reflection questions.`;
 
   try {
+    const ai = getAiInstance();
     const response = await ai.models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: contents,
@@ -83,6 +91,7 @@ export async function searchDictionary(term: string): Promise<string> {
 Provide encyclopedic details, geographical context (if applicable), and spiritual meaning.`;
 
   try {
+    const ai = getAiInstance();
     const response = await ai.models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: contents,
@@ -103,6 +112,7 @@ export async function analyzeWord(word: string, verseContext: string): Promise<s
   const contents = `Give a deep dive linguistic analysis of the word or phrase "${word}" in the context of the following verse: "${verseContext}". Include original Hebrew/Greek roots where applicable, transliteration, meaning, and how it is used elsewhere in scripture.`;
 
   try {
+    const ai = getAiInstance();
     const response = await ai.models.generateContent({
         model: "gemini-3.1-pro-preview",
       contents: contents,
@@ -123,6 +133,7 @@ export async function askDeepDive(query: string): Promise<string> {
   const contents = `The user is asking a biblical deep dive query: "${query}". Address it thoroughly but accessibly. Include historical context, theological insight, and spiritual encouragement where appropriate. Cite relevant Bible verses.`;
 
   try {
+    const ai = getAiInstance();
     const response = await ai.models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: contents,
@@ -144,6 +155,7 @@ export async function getAiSuggestion(latestBook: string): Promise<string> {
   const contents = `The user was most recently reading the book of "${latestBook}" in the Bible. Give a very short 1-sentence personalized suggestion on what to read next and a tiny bit of why. Do not use quotes. E.g. Since you were studying Genesis, consider reading the Gospel of John to see the beginning from a new perspective.`;
 
   try {
+    const ai = getAiInstance();
     const response = await ai.models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: contents,
@@ -177,6 +189,7 @@ Return ONLY a strictly valid JSON object matching this schema:
 For the modules, chapterToRead must be a number representing the chapter. Return ONLY the JSON, without markdown blocks.`;
 
   try {
+    const ai = getAiInstance();
     const response = await ai.models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: contents,

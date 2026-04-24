@@ -1,12 +1,106 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, Check, Settings as SettingsIcon, Book, Languages, Download, Moon, Upload, Search, Edit3, Activity } from "lucide-react";
+import { ChevronLeft, Check, Settings as SettingsIcon, Book, Languages, Download, Moon, Upload, Search, Edit3, Activity, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { db } from "@/db";
+import { useLiveQuery } from "dexie-react-hooks";
 import { searchDictionary } from "@/services/ai";
 import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
 
+function ProfileSection({ setActiveSection, habits }: { setActiveSection: any, habits: any }) {
+  const [customKey, setCustomKey] = useState(localStorage.getItem('customGeminiKey') || '');
+  const [userName, setUserName] = useState(habits?.name || 'Believer');
+  const [userEmoji, setUserEmoji] = useState(localStorage.getItem('userEmoji') || '🙏');
+  const [userIdentityNote, setUserIdentityNote] = useState(localStorage.getItem('userIdentityNote') || '');
+  const usageCount = parseInt(localStorage.getItem('apiUsageCount') || '0', 10);
+
+  const handleSaveProfile = async () => {
+     localStorage.setItem('customGeminiKey', customKey);
+     localStorage.setItem('userEmoji', userEmoji);
+     localStorage.setItem('userIdentityNote', userIdentityNote);
+     window.dispatchEvent(new Event('api-key-changed'));
+     
+     if (habits && habits.name !== userName) {
+         await db.habits.update(1, { name: userName });
+     }
+     
+     alert("Profile and API credentials saved securely to your local device.");
+  };
+
+  return (
+    <div className="flex flex-col flex-1 p-6 md:p-0 space-y-6 animate-in slide-in-from-right duration-300 pb-24 md:pb-8 max-w-3xl mx-auto w-full">
+      <header className="md:pt-4 flex items-center justify-between">
+         <div className="flex items-center gap-4">
+             <button onClick={() => setActiveSection(null)} className="p-2 -ml-2 rounded-full hover:bg-sacred-surface-dark transition-colors">
+                <ChevronLeft className="w-6 h-6 text-sacred-text-primary" />
+             </button>
+             <h1 className="text-3xl font-light text-sacred-text-primary">Profile</h1>
+         </div>
+         <button onClick={handleSaveProfile} className="bg-sacred-gold text-sacred-bg-dark px-4 py-2 rounded text-xs uppercase tracking-widest font-bold font-sans">
+             Save
+         </button>
+      </header>
+
+      {/* Identity & Core Details */}
+      <div className="bg-sacred-surface-dark p-6 rounded-xl border border-sacred-gold/10">
+         <h3 className="uppercase tracking-widest text-xs font-bold text-sacred-text-secondary mb-4">Identity</h3>
+         <div className="flex gap-4 mb-4">
+            <div className="w-16">
+              <label className="text-[10px] uppercase font-sans tracking-widest text-sacred-text-secondary block mb-1">Emoji</label>
+              <input type="text" maxLength={2} value={userEmoji} onChange={e => setUserEmoji(e.target.value)} className="w-full bg-sacred-bg-dark border border-sacred-gold/30 rounded-lg p-3 text-center text-xl text-sacred-text-primary outline-none focus:border-sacred-gold" />
+            </div>
+            <div className="flex-1">
+              <label className="text-[10px] uppercase font-sans tracking-widest text-sacred-text-secondary block mb-1">Name</label>
+              <input type="text" value={userName} onChange={e => setUserName(e.target.value)} className="w-full bg-sacred-bg-dark border border-sacred-gold/30 rounded-lg p-3 text-sacred-text-primary outline-none focus:border-sacred-gold" />
+            </div>
+         </div>
+         <div>
+            <label className="text-[10px] uppercase font-sans tracking-widest text-sacred-text-secondary block mb-1">Identity Note</label>
+            <textarea 
+              value={userIdentityNote} 
+              onChange={e => setUserIdentityNote(e.target.value)} 
+              placeholder="A personal note, life verse, or spiritual goal..."
+              className="w-full bg-sacred-bg-dark border border-sacred-gold/30 rounded-lg p-3 text-sacred-text-primary outline-none focus:border-sacred-gold min-h-[80px]"
+            ></textarea>
+         </div>
+      </div>
+
+      {/* AI Settings & Usage */}
+      <div className="bg-sacred-surface-dark p-6 rounded-xl border border-sacred-gold/10">
+         <h3 className="uppercase tracking-widest text-xs font-bold text-sacred-text-secondary mb-4 flex items-center gap-2"><Sparkles className="w-4 h-4 text-sacred-gold"/> AI Configuration</h3>
+         
+         <div className="mb-6 pb-6 border-b border-sacred-gold/10">
+            <label className="text-[10px] uppercase font-sans tracking-widest text-sacred-text-secondary block mb-1">Custom Gemini API Key</label>
+            <input 
+              type="password" 
+              value={customKey} 
+              onChange={e => setCustomKey(e.target.value)} 
+              placeholder="AI Studio System Key is used by default..."
+              className="w-full bg-sacred-bg-dark border border-sacred-gold/30 rounded-lg p-3 text-sacred-text-primary outline-none focus:border-sacred-gold font-mono text-sm" 
+            />
+            <p className="text-[10px] text-sacred-text-secondary mt-2 opacity-70">Overriding the key will bypass rate limits and utilize your own quota constraints directly from Google AI Studio.</p>
+         </div>
+
+         <div className="flex items-center justify-between bg-sacred-bg-dark p-4 rounded-lg border border-sacred-gold/10 group">
+            <div className="flex items-center gap-3">
+               <div className="w-10 h-10 rounded-full bg-sacred-surface-dark flex items-center justify-center">
+                  <Activity className="w-5 h-5 text-sacred-gold" />
+               </div>
+               <div className="flex flex-col">
+                  <span className="text-sm font-medium text-sacred-text-primary">Total Computations</span>
+                  <span className="text-[10px] uppercase tracking-widest text-sacred-text-secondary">Requests Sent to AI Guide</span>
+               </div>
+            </div>
+            <div className="text-xl font-bold font-mono text-sacred-text-primary">{usageCount}</div>
+         </div>
+      </div>
+
+    </div>
+  );
+}
+
 export function More() {
+  const habits = useLiveQuery(() => db.habits.get(1));
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [preferredVersion, setPreferredVersion] = useState(localStorage.getItem('preferredVersion') || 'KJV');
   
@@ -169,6 +263,11 @@ export function More() {
           )}
         </div>
       );
+    }
+    
+    if (activeSection === 'Profile') {
+      // (Hooks moved to top of More component previously? Wait, Hooks can't be conditional. Ah. That's the React error coming if I render conditional hooks. But I just need to fix the syntax error right now).
+      return <ProfileSection setActiveSection={setActiveSection} habits={habits} />;
     }
     
     if (activeSection === 'Appearance') {

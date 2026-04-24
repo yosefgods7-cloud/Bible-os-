@@ -25,11 +25,7 @@ export function Reader() {
   useEffect(() => {
     localStorage.setItem('lastChapter', currentChapter.toString());
     localStorage.setItem('lastBook', book);
-
-    const prefVersion = localStorage.getItem('preferredVersion');
-    if (prefVersion && prefVersion !== version) {
-        setVersion(prefVersion);
-    }
+    localStorage.setItem('preferredVersion', version);
   }, [currentChapter, book, version]);
 
   useEffect(() => {
@@ -37,6 +33,20 @@ export function Reader() {
       setIsFetchingChapter(true);
       await fetchAndCacheChapter(version, book, currentChapter);
       setIsFetchingChapter(false);
+      
+      try {
+          const statsStr = localStorage.getItem('reading_stats');
+          const stats = statsStr ? JSON.parse(statsStr) : {};
+          const key = `${book} ${currentChapter}`;
+          stats[key] = (stats[key] || 0) + 1;
+          
+          const bookStatsStr = localStorage.getItem('reading_book_stats');
+          const bookStats = bookStatsStr ? JSON.parse(bookStatsStr) : {};
+          bookStats[book] = (bookStats[book] || 0) + 1;
+
+          localStorage.setItem('reading_stats', JSON.stringify(stats));
+          localStorage.setItem('reading_book_stats', JSON.stringify(bookStats));
+      } catch(e) {}
     };
     loadChapter();
   }, [book, currentChapter, version]);
@@ -169,39 +179,78 @@ export function Reader() {
       }
   };
 
-  const toggleTTS = () => {
-    if (!verses || verses.length === 0) return;
-    if (isPlaying) {
-       window.speechSynthesis.cancel();
-       setIsPlaying(false);
-       return;
-    } 
-    
-    // Stop any stuck speech
-    window.speechSynthesis.cancel();
+  // TTS State
+  const [ttsSpeed, setTtsSpeed] = useState(1);
+  const [showTtsControls, setShowTtsControls] = useState(false);
+  const [currentSpeechVerseIndex, setCurrentSpeechVerseIndex] = useState(-1);
 
-    // To cleanly bypass Chrome/Mobile 15-second limits and maintain the 
-    // user-activation gesture, we synchronously queue each verse individually
-    // directly inside the click handler, relying on the native TTS queue.
+  const performSpeak = (startIndex: number, speed: number) => {
+    window.speechSynthesis.cancel();
+    if (!verses || verses.length === 0) return;
+    setIsPlaying(true);
     
-    verses.forEach((v, i) => {
+    // We only queue from the startIndex forward
+    const versesToPlay = verses.slice(startIndex);
+    
+    versesToPlay.forEach((v, idx) => {
        if (!v.text.trim()) return;
        const utterance = new SpeechSynthesisUtterance(v.text);
+       utterance.rate = speed;
        
-       if (i === verses.length - 1) {
-           utterance.onend = () => setIsPlaying(false);
+       utterance.onstart = () => {
+         setCurrentSpeechVerseIndex(startIndex + idx);
+       };
+
+       if (idx === versesToPlay.length - 1) {
+           utterance.onend = () => {
+             setIsPlaying(false);
+             setCurrentSpeechVerseIndex(-1);
+           };
        }
        
        utterance.onerror = (e) => { 
            console.error("TTS Error:", e);
            setIsPlaying(false); 
+           setCurrentSpeechVerseIndex(-1);
        };
        
-       // Fire synchronously without setTimeout to honor strict gesture policies
        window.speechSynthesis.speak(utterance);
     });
+  };
+
+  const toggleTTS = () => {
+    if (!verses || verses.length === 0) return;
     
-    setIsPlaying(true);
+    if (isPlaying) {
+       window.speechSynthesis.cancel();
+       setIsPlaying(false);
+       setCurrentSpeechVerseIndex(-1);
+       
+    } else {
+       setShowTtsControls(true);
+       performSpeak(0, ttsSpeed);
+    }
+  };
+
+  const skipTtsForward = () => {
+    if (!verses || currentSpeechVerseIndex >= verses.length - 1) return;
+    performSpeak(currentSpeechVerseIndex + 1, ttsSpeed);
+  };
+
+  const skipTtsBackward = () => {
+    if (!verses || currentSpeechVerseIndex <= 0) {
+      performSpeak(0, ttsSpeed); // Restart chapter
+      return;
+    }
+    performSpeak(currentSpeechVerseIndex - 1, ttsSpeed);
+  };
+  
+  const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newSpeed = parseFloat(e.target.value);
+    setTtsSpeed(newSpeed);
+    if (isPlaying && currentSpeechVerseIndex >= 0) {
+       performSpeak(currentSpeechVerseIndex, newSpeed);
+    }
   };
 
   // cleanup TTS
@@ -245,18 +294,72 @@ export function Reader() {
            >
              {book} {currentChapter}
            </button>
+           <select 
+             className="bg-transparent border border-sacred-surface-light text-xs text-sacred-text-secondary rounded px-2 py-1 outline-none appearance-none ml-2 cursor-pointer hover:border-sacred-gold transition-colors"
+             value={version}
+             onChange={(e) => setVersion(e.target.value)}
+           >
+              <option value="KJV" className="bg-sacred-surface-dark">KJV</option>
+              <option value="NIV" className="bg-sacred-surface-dark">NIV</option>
+              <option value="ESV" className="bg-sacred-surface-dark">ESV</option>
+              <option value="NLT" className="bg-sacred-surface-dark">NLT</option>
+           </select>
         </div>
-        <div className="flex items-center space-x-2">
-          <button onClick={toggleTTS} className="p-2 relative flex items-center justify-center">
+        <div className="flex items-center space-x-1">
+          {isPlaying && (
+             <button onClick={skipTtsBackward} className="p-2 text-sacred-text-secondary hover:text-sacred-gold transition">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+             </button>
+          )}
+          <button onClick={() => setShowTtsControls(!showTtsControls)} onDoubleClick={toggleTTS} className="p-2 relative flex items-center justify-center">
              {isPlaying ? (
                <Pause className="w-5 h-5 text-sacred-gold animate-pulse" fill="currentColor"/>
              ) : (
                <Speech className="w-5 h-5 text-sacred-text-secondary hover:text-sacred-text-primary transition" />
              )}
           </button>
-          <button className="p-2"><Settings className="w-4 h-4 text-sacred-text-secondary hover:text-sacred-text-primary transition" /></button>
+          {isPlaying && (
+             <button onClick={skipTtsForward} className="p-2 text-sacred-text-secondary hover:text-sacred-gold transition">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+             </button>
+          )}
+          <Link to="/more" className="p-2"><Settings className="w-4 h-4 text-sacred-text-secondary hover:text-sacred-text-primary transition" /></Link>
         </div>
       </header>
+      
+      {/* TTS Controls Panel */}
+      {showTtsControls && (
+        <div className="bg-sacred-surface-dark border-b border-sacred-gold/10 p-4 sticky top-[65px] z-10 shadow-lg animate-in fade-in slide-in-from-top-2">
+           <div className="max-w-md mx-auto flex flex-col gap-4">
+              <div className="flex justify-center items-center gap-6">
+                 <button onClick={skipTtsBackward} className="p-2 rounded-full hover:bg-sacred-bg-dark text-sacred-text-secondary hover:text-sacred-gold transition-colors">
+                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+                 </button>
+                 <button onClick={toggleTTS} className="p-4 rounded-full bg-sacred-gold text-sacred-bg-dark hover:bg-sacred-gold-light transition-colors shadow-lg shadow-sacred-gold/20">
+                     {isPlaying ? (
+                        <Pause className="w-6 h-6" fill="currentColor" />
+                     ) : (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                     )}
+                 </button>
+                 <button onClick={skipTtsForward} className="p-2 rounded-full hover:bg-sacred-bg-dark text-sacred-text-secondary hover:text-sacred-gold transition-colors">
+                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+                 </button>
+              </div>
+              <div className="flex items-center gap-4">
+                 <span className="text-[10px] uppercase font-bold tracking-widest text-sacred-text-secondary w-16 text-right">Speed</span>
+                 <input 
+                   type="range" 
+                   min="0.5" max="2" step="0.1" 
+                   value={ttsSpeed} 
+                   onChange={handleSpeedChange}
+                   className="flex-1 h-1 bg-sacred-card-dark rounded-lg appearance-none cursor-pointer accent-sacred-gold"
+                 />
+                 <span className="text-[10px] uppercase font-bold tracking-widest text-sacred-gold w-8">{ttsSpeed.toFixed(1)}x</span>
+              </div>
+           </div>
+        </div>
+      )}
 
       {/* Reader Content */}
       <div className="flex-1 overflow-y-auto px-6 py-6 pb-32">

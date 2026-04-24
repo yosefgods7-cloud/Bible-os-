@@ -3,13 +3,24 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, CartesianGrid } from "recharts";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon, Activity } from "lucide-react";
+import { Calendar as CalendarIcon, Activity, BookOpen } from "lucide-react";
 
 export function Habits() {
   const habits = useLiveQuery(() => db.habits.get(1));
   const history = useLiveQuery(() => db.history.toArray(), []);
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  const topBooks = useMemo(() => {
+    try {
+      const statsStr = localStorage.getItem('reading_book_stats');
+      if (!statsStr) return [];
+      const stats = JSON.parse(statsStr);
+      return Object.entries(stats)
+           .sort((a: any, b: any) => b[1] - a[1])
+           .slice(0, 10);
+    } catch(e) { return []; }
+  }, []);
 
   const chartData = useMemo(() => {
     if (!history) return [];
@@ -104,7 +115,7 @@ export function Habits() {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mt-8">
         
         {/* PERFORMANCE GRAPH SECTION */}
-        <div className="md:col-span-12 bg-sacred-surface-dark p-6 rounded-xl border border-sacred-gold/10 shadow-2xl overflow-hidden relative">
+        <div className="md:col-span-8 bg-sacred-surface-dark p-6 rounded-xl border border-sacred-gold/10 shadow-2xl overflow-hidden relative">
            <div className="flex items-center gap-2 mb-6">
               <Activity className="text-sacred-gold w-5 h-5" />
               <h3 className="uppercase tracking-widest text-xs font-bold text-sacred-text-secondary">Performance Graph (14 Days)</h3>
@@ -149,6 +160,31 @@ export function Habits() {
            <div className="flex justify-center items-center gap-6 mt-4 opacity-70">
               <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-sacred-gold"></div><span className="text-[10px] uppercase font-bold text-sacred-text-secondary tracking-wider">Minutes</span></div>
               <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-600"></div><span className="text-[10px] uppercase font-bold text-sacred-text-secondary tracking-wider">Chapters</span></div>
+           </div>
+        </div>
+
+        {/* MOST READ BOOKS */}
+        <div className="md:col-span-4 bg-sacred-surface-dark p-6 rounded-xl border border-sacred-gold/10 shadow-2xl overflow-y-auto max-h-[360px]">
+           <div className="flex items-center gap-2 mb-6">
+              <BookOpen className="text-sacred-gold w-5 h-5" />
+              <h3 className="uppercase tracking-widest text-xs font-bold text-sacred-text-secondary">Most Read Books</h3>
+           </div>
+           <div className="flex flex-col gap-3">
+              {topBooks.length > 0 ? topBooks.map(([bookName, readCount], idx) => (
+                 <div key={bookName} className="flex items-center justify-between p-3 rounded-lg bg-sacred-card-dark border border-transparent hover:border-sacred-gold/30 transition-colors group">
+                    <div className="flex items-center gap-3">
+                       <span className="text-sacred-gold font-bold font-mono text-sm w-4">{idx + 1}</span>
+                       <span className="text-sacred-text-primary text-sm tracking-wide group-hover:text-sacred-gold-light transition">{bookName}</span>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-widest font-bold text-sacred-text-secondary">
+                        {readCount}x
+                    </span>
+                 </div>
+              )) : (
+                <div className="text-xs text-sacred-text-secondary italic text-center mt-4">
+                  Keep reading to build your statistics!
+                </div>
+              )}
            </div>
         </div>
 

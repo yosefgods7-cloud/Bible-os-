@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db";
 import { Link } from "react-router-dom";
-import { Flame, Star, BookOpen, Quote, ChevronRight } from "lucide-react";
+import { Flame, Star, BookOpen, Quote, ChevronRight, Copy } from "lucide-react";
 import { getAiSuggestion } from "@/services/ai";
 
 function FidelityHeatmap() {
@@ -50,14 +50,23 @@ export function Home() {
   const recentNote = recentNoteArr && recentNoteArr.length > 0 ? recentNoteArr[0] : null;
 
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [isSuggesting, setIsSuggesting] = useState(false);
 
-  useEffect(() => {
+  const handleGenerateSuggestion = async () => {
+     setIsSuggesting(true);
      let lastBook = localStorage.getItem('lastBook') || 'Genesis';
-     getAiSuggestion(lastBook).then(res => setAiSuggestion(res));
-  }, []);
+     const res = await getAiSuggestion(lastBook);
+     setAiSuggestion(res);
+     setIsSuggesting(false);
+  };
 
-  const verseOfTheDayHeader = "For I know the plans I have for you... — Jeremiah 29:11"; 
-  const verseOfTheDayBody = "\"I am the vine; you are the branches. If you remain in me and I in you, you will bear much fruit; apart from me you can do nothing.\"";
+  const verseOfTheDayHeader = "Jeremiah 29:11"; 
+  const verseOfTheDayBody = "\"For I know the plans I have for you,\" declares the LORD, \"plans to prosper you and not to harm you, plans to give you hope and a future.\"";
+
+  const handleCopyVerse = () => {
+    navigator.clipboard.writeText(`${verseOfTheDayBody} — ${verseOfTheDayHeader}`);
+    alert("Verse copied to clipboard!");
+  };
 
   if (!habits) return null;
 
@@ -72,16 +81,16 @@ export function Home() {
             <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor" className="text-sacred-gold"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
           </div>
           <h1 className="text-3xl font-light mb-2 text-sacred-text-primary">Good morning, {habits.name}.</h1>
-          <p className="text-sacred-text-secondary text-sm mb-6">"{verseOfTheDayHeader}"</p>
+          <p className="text-sacred-text-secondary text-sm mb-6">Verse of the Day</p>
           
           <div className="bg-sacred-card-dark p-6 rounded-lg border-l-4 border-sacred-gold">
             <p className="italic text-xl mb-4 font-serif leading-relaxed text-sacred-text-primary">
               {verseOfTheDayBody}
             </p>
             <div className="flex justify-between items-center">
-              <span className="text-sacred-gold font-semibold">John 15:5 — NIV</span>
-              <button className="text-xs uppercase tracking-widest text-sacred-text-secondary border border-sacred-text-secondary px-3 py-1 rounded hover:bg-sacred-text-primary hover:text-sacred-bg-dark transition-all">
-                Share Verse
+              <span className="text-sacred-gold font-semibold">{verseOfTheDayHeader} — NIV</span>
+              <button onClick={handleCopyVerse} className="flex items-center gap-2 text-xs uppercase tracking-widest text-sacred-text-secondary border border-sacred-text-secondary px-3 py-1 rounded hover:bg-sacred-text-primary hover:text-sacred-bg-dark transition-all">
+                <Copy className="w-3 h-3" /> Copy
               </button>
             </div>
           </div>
@@ -178,11 +187,16 @@ export function Home() {
             <span className="text-xs font-bold uppercase tracking-widest text-sacred-gold-light">AI Guide Suggestion</span>
           </div>
           <p className="text-sm text-sacred-text-primary leading-relaxed relative z-10 min-h-[40px]">
-            {aiSuggestion ? aiSuggestion : <span className="opacity-50 animate-pulse">Analyzing your latest reading logs...</span>}
+            {aiSuggestion ? aiSuggestion : <span className="opacity-50">Click below to generate a personalized reading suggestion based on your history.</span>}
           </p>
-          <button className="w-full py-2 border border-sacred-gold/50 rounded text-xs uppercase tracking-widest font-bold text-sacred-text-primary hover:bg-sacred-gold/10 transition-colors relative z-10">
-            Generate Devotional
-          </button>
+          <div className="flex gap-2 relative z-10">
+            <button onClick={handleGenerateSuggestion} disabled={isSuggesting} className="flex-1 py-3 bg-sacred-gold rounded text-[10px] uppercase tracking-widest font-bold text-sacred-bg-dark hover:bg-sacred-gold-light transition-colors disabled:opacity-50">
+              {isSuggesting ? 'Thinking...' : 'Suggest Next Reading'}
+            </button>
+            <button disabled className="flex-1 py-3 border border-sacred-gold/50 rounded text-[10px] uppercase tracking-widest font-bold text-sacred-text-primary hover:bg-sacred-gold/10 transition-colors opacity-50 cursor-not-allowed">
+              Generate Devotional
+            </button>
+          </div>
         </div>
 
         {/* METRICS HEATMAP MINI */}
