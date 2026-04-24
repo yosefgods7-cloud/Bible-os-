@@ -144,7 +144,7 @@ export function Habits() {
                       fillOpacity={1} 
                       fill="url(#colorMinutes)" 
                       strokeWidth={2}
-                      activeDot={{ r: 6, fill: "#C9A84C", border: "none" }}
+                      activeDot={{ r: 6, fill: "#C9A84C", stroke: "none" }}
                     />
                     <Line 
                       type="monotone" 
@@ -170,7 +170,7 @@ export function Habits() {
               <h3 className="uppercase tracking-widest text-xs font-bold text-sacred-text-secondary">Most Read Books</h3>
            </div>
            <div className="flex flex-col gap-3">
-              {topBooks.length > 0 ? topBooks.map(([bookName, readCount], idx) => (
+              {topBooks.length > 0 ? topBooks.map(([bookName, readCount]: any, idx: number) => (
                  <div key={bookName} className="flex items-center justify-between p-3 rounded-lg bg-sacred-card-dark border border-transparent hover:border-sacred-gold/30 transition-colors group">
                     <div className="flex items-center gap-3">
                        <span className="text-sacred-gold font-bold font-mono text-sm w-4">{idx + 1}</span>
