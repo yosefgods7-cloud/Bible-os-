@@ -1,0 +1,6 @@
+{
+	"appId": "com.bibleos.app",
+	"appName": "BibleOS",
+	"webDir": "dist",
+	"bundledWebRuntime": false
+}

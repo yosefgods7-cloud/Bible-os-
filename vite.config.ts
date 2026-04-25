@@ -8,7 +8,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: './',
+    base: process.env.VITE_BASE_URL || './',
     plugins: [
       react(), 
       tailwindcss(),
@@ -44,7 +44,7 @@ export default defineConfig(({mode}) => {
       },
     },
     build: {
-      outDir: 'docs',
+      outDir: 'dist',
       emptyOutDir: true,
     },
     server: {
