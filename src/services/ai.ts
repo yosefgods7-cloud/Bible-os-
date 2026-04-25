@@ -184,9 +184,16 @@ Return ONLY a strictly valid JSON object matching this schema:
   "bookFocus": "Which book(s) or topic",
   "timeToFinish": "e.g., 7 Days, 2 Weeks",
   "goals": "What the user will achieve",
-  "modules": [ { "day": 1, "chapterToRead": 1 } ]
+  "dailyPlans": [
+    {
+      "day": 1,
+      "dailyGoal": "What to achieve today",
+      "guideText": "A short guide to what is being read today.",
+      "chapters": [ { "book": "Genesis", "chapter": 1 } ]
+    }
+  ]
 }
-For the modules, chapterToRead must be a number representing the chapter. Return ONLY the JSON, without markdown blocks.`;
+Return ONLY the JSON, without markdown blocks.`;
 
   try {
     const ai = getAiInstance();

@@ -34,12 +34,13 @@ function SelectableVerse({ book, chapter, verse, itemRef } : {book: string, chap
 }
 
 export function Journal() {
-  const [activeTab, setActiveTab] = useState<'highlights'|'bookmarks'|'notes'>('notes');
+  const [activeTab, setActiveTab] = useState<'notes'|'roadmap-notes'|'highlights'|'bookmarks'>('notes');
   const [search, setSearch] = useState("");
 
   const highlights = useLiveQuery(() => db.highlights.toArray());
   const bookmarks = useLiveQuery(() => db.bookmarks.toArray());
   const notes = useLiveQuery(() => db.notes.toArray());
+  const roadmaps = useLiveQuery(() => db.roadmaps.toArray());
 
   const filterItems = (items: any[]) => {
      if (!items) return [];
@@ -49,6 +50,9 @@ export function Journal() {
        (i.text && i.text.toLowerCase().includes(search.toLowerCase()))
      );
   };
+  
+  const regularNotes = notes ? notes.filter(n => !n.roadmapId) : [];
+  const roadmapNotes = notes ? notes.filter(n => !!n.roadmapId) : [];
 
   return (
     <div className="flex flex-col flex-1 p-6 md:p-0 space-y-6 animate-in fade-in duration-700 pb-24 md:pb-8 max-w-3xl mx-auto w-full">
@@ -69,23 +73,27 @@ export function Journal() {
          />
       </div>
 
-      <div className="flex space-x-4 border-b border-sacred-surface-light/10">
+      <div className="flex overflow-x-auto hide-scrollbar space-x-4 border-b border-sacred-surface-light/10">
         <button 
           onClick={() => setActiveTab('notes')}
-          className={`pb-2 text-sm uppercase tracking-widest ${activeTab === 'notes' ? 'text-sacred-gold border-b-2 border-sacred-gold font-bold' : 'text-sacred-text-secondary hover:text-sacred-text-primary'}`}
+          className={`pb-2 text-sm uppercase tracking-widest whitespace-nowrap ${activeTab === 'notes' ? 'text-sacred-gold border-b-2 border-sacred-gold font-bold' : 'text-sacred-text-secondary hover:text-sacred-text-primary'}`}
         >Notes</button>
         <button 
+          onClick={() => setActiveTab('roadmap-notes')}
+          className={`pb-2 text-sm uppercase tracking-widest whitespace-nowrap ${activeTab === 'roadmap-notes' ? 'text-sacred-gold border-b-2 border-sacred-gold font-bold' : 'text-sacred-text-secondary hover:text-sacred-text-primary'}`}
+        >Roadmap Notes</button>
+        <button 
           onClick={() => setActiveTab('highlights')}
-          className={`pb-2 text-sm uppercase tracking-widest ${activeTab === 'highlights' ? 'text-sacred-gold border-b-2 border-sacred-gold font-bold' : 'text-sacred-text-secondary hover:text-sacred-text-primary'}`}
+          className={`pb-2 text-sm uppercase tracking-widest whitespace-nowrap ${activeTab === 'highlights' ? 'text-sacred-gold border-b-2 border-sacred-gold font-bold' : 'text-sacred-text-secondary hover:text-sacred-text-primary'}`}
         >Highlights</button>
         <button 
           onClick={() => setActiveTab('bookmarks')}
-          className={`pb-2 text-sm uppercase tracking-widest ${activeTab === 'bookmarks' ? 'text-sacred-gold border-b-2 border-sacred-gold font-bold' : 'text-sacred-text-secondary hover:text-sacred-text-primary'}`}
+          className={`pb-2 text-sm uppercase tracking-widest whitespace-nowrap ${activeTab === 'bookmarks' ? 'text-sacred-gold border-b-2 border-sacred-gold font-bold' : 'text-sacred-text-secondary hover:text-sacred-text-primary'}`}
         >Bookmarks</button>
       </div>
 
       <div className="flex flex-col space-y-4">
-        {activeTab === 'notes' && filterItems(notes || []).map(note => (
+        {activeTab === 'notes' && filterItems(regularNotes).map(note => (
            <div key={note.id} className="bg-sacred-card-dark p-5 rounded-xl border border-sacred-gold/10">
               <div className="flex justify-between items-center mb-3">
                  <Link to="/read" onClick={() => { localStorage.setItem('lastBook', note.book); localStorage.setItem('lastChapter', note.chapter.toString()); }} className="text-sacred-gold-light font-bold hover:underline">
@@ -97,6 +105,33 @@ export function Journal() {
               <p className="text-[10px] text-sacred-text-secondary mt-3">{new Date(note.timestamp).toLocaleDateString()}</p>
            </div>
         ))}
+        
+        {activeTab === 'roadmap-notes' && filterItems(roadmapNotes).map(note => {
+           let rTitle = 'Deleted Roadmap';
+           if (roadmaps) {
+               const r = roadmaps.find((rx: any) => rx.id === note.roadmapId);
+               if (r) rTitle = r.title;
+           }
+           
+           return (
+           <div key={note.id} className="bg-sacred-card-dark p-5 rounded-xl border border-sacred-gold/10 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none">
+                 <Edit3 className="w-24 h-24 -mr-4 -mt-4 text-sacred-gold" />
+              </div>
+              <div className="flex justify-between items-center mb-3 relative z-10">
+                 <Link to="/read" onClick={() => { localStorage.setItem('lastBook', note.book); localStorage.setItem('lastChapter', note.chapter.toString()); }} className="text-sacred-gold-light font-bold hover:underline">
+                    {note.book} {note.chapter}:{note.verse}
+                 </Link>
+                 <div className="flex items-center gap-2">
+                    <span className="text-[9px] uppercase tracking-widest text-sacred-text-secondary bg-sacred-surface-dark px-2 py-1 rounded">
+                       {rTitle} - Day {note.roadmapDay}
+                    </span>
+                 </div>
+              </div>
+              <p className="text-sacred-text-primary bg-sacred-surface-dark p-3 rounded relative z-10">{note.text}</p>
+              <p className="text-[10px] text-sacred-text-secondary mt-3 relative z-10">{new Date(note.timestamp).toLocaleDateString()}</p>
+           </div>
+        )})}
 
         {activeTab === 'highlights' && filterItems(highlights || []).map(h => (
            <SelectableVerse key={h.id} book={h.book} chapter={h.chapter} verse={h.verse} itemRef={h} />
@@ -106,8 +141,12 @@ export function Journal() {
            <SelectableVerse key={b.id} book={b.book} chapter={b.chapter} verse={b.verse} itemRef={b} />
         ))}
 
-        {filterItems(activeTab === 'notes' ? (notes||[]) : activeTab === 'highlights' ? (highlights||[]) : (bookmarks||[])).length === 0 && (
-          <p className="text-sacred-text-secondary text-sm text-center mt-12 opacity-50">Nothing saved yet.</p>
+        {filterItems(
+           activeTab === 'notes' ? regularNotes : 
+           activeTab === 'roadmap-notes' ? roadmapNotes :
+           activeTab === 'highlights' ? (highlights||[]) : (bookmarks||[])
+        ).length === 0 && (
+          <p className="text-sacred-text-secondary text-sm text-center mt-12 opacity-50 uppercase tracking-widest">Nothing saved yet.</p>
         )}
       </div>
 

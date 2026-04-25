@@ -44,11 +44,29 @@ export interface Note {
   verse: number;
   text: string;
   timestamp: string;
+  roadmapId?: number;
+  roadmapDay?: number;
 }
 
 export interface ReadingHistory {
   date: string; // YYYY-MM-DD format
   chaptersRead: number;
+}
+
+export interface RoadmapChapter {
+  book: string;
+  chapter: number;
+  isRead: boolean;
+  notesTaken: boolean;
+}
+
+export interface RoadmapDailyPlan {
+  day: number;
+  dateStr?: string | null;
+  dailyGoal: string;
+  chapters: RoadmapChapter[];
+  isCompleted: boolean;
+  guideText?: string;
 }
 
 export interface Roadmap {
@@ -60,7 +78,10 @@ export interface Roadmap {
   bookFocus: string;
   timeToFinish: string;
   goals: string;
-  modules: { day: number; chapterToRead: number }[];
+  dailyPlans: RoadmapDailyPlan[];
+  
+  // Legacy backward compatibility
+  modules?: { day: number; chapterToRead: number }[];
 }
 
 const db = new Dexie('BibleOSDatabase') as Dexie & {
@@ -125,7 +146,22 @@ db.on('populate', async () => {
     bookFocus: "Genesis",
     timeToFinish: "2 Weeks",
     goals: "Understand the origin story of the universe.",
-    modules: [{ day: 1, chapterToRead: 1 }, { day: 2, chapterToRead: 2 }]
+    dailyPlans: [
+      {
+        day: 1,
+        dailyGoal: "Understand creation.",
+        guideText: "In the beginning, God created the heavens and the earth. See how order emerges from chaos.",
+        chapters: [{ book: 'Genesis', chapter: 1, isRead: false, notesTaken: false }],
+        isCompleted: false
+      },
+      {
+        day: 2,
+        dailyGoal: "Explore the first human relationship.",
+        guideText: "Adam and Eve placed in the garden.",
+        chapters: [{ book: 'Genesis', chapter: 2, isRead: false, notesTaken: false }],
+        isCompleted: false
+      }
+    ]
   });
 });
 

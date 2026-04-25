@@ -1,16 +1,24 @@
 import { useState, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/db";
-import { Sparkles, ChevronLeft, ChevronRight, Play, Settings, BookOpenText, Copy, Bookmark, Highlighter, Edit3, Speech, Pause, Languages } from "lucide-react";
+import { db, RoadmapDailyPlan } from "@/db";
+import { Sparkles, ChevronLeft, ChevronRight, Play, Settings, BookOpenText, Copy, Bookmark, Highlighter, Edit3, Speech, Pause, Languages, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { explainVerse, generateDevotional, analyzeWord } from "@/services/ai";
 import { fetchAndCacheChapter, BIBLE_BOOKS } from "@/services/bible";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import ReactMarkdown from 'react-markdown';
 
 export function Reader() {
-  const [currentChapter, setCurrentChapter] = useState(Number(localStorage.getItem('lastChapter')) || 1);
-  const [book, setBook] = useState(localStorage.getItem('lastBook') || 'Genesis');
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
+  const paramBook = searchParams.get('book');
+  const paramChapter = searchParams.get('chapter');
+  const roadmapId = searchParams.get('roadmap');
+  const planDay = searchParams.get('planDay');
+
+  const [currentChapter, setCurrentChapter] = useState(paramChapter ? Number(paramChapter) : Number(localStorage.getItem('lastChapter')) || 1);
+  const [book, setBook] = useState(paramBook || localStorage.getItem('lastBook') || 'Genesis');
   const [version, setVersion] = useState(localStorage.getItem('preferredVersion') || 'KJV');
   
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
@@ -27,6 +35,53 @@ export function Reader() {
     localStorage.setItem('lastBook', book);
     localStorage.setItem('preferredVersion', version);
   }, [currentChapter, book, version]);
+
+  const checkAndMarkRoadmapContext = async (action: 'read' | 'note') => {
+    if (!roadmapId || !planDay) return;
+    const rId = Number(roadmapId);
+    const pDay = Number(planDay);
+    
+    const roadmap = await db.roadmaps.get(rId);
+    if (!roadmap || !roadmap.dailyPlans) return;
+    
+    let updated = false;
+    let allCompleted = false;
+
+    const newPlans = roadmap.dailyPlans.map(plan => {
+      if (plan.day === pDay) {
+        let planUpdated = false;
+        const newChapters = plan.chapters.map(chap => {
+          if (chap.book === book && chap.chapter === currentChapter) {
+             if (action === 'read' && !chap.isRead) {
+               chap.isRead = true;
+               planUpdated = true;
+             }
+             if (action === 'note' && !chap.notesTaken) {
+               chap.notesTaken = true;
+               planUpdated = true;
+             }
+          }
+          return chap;
+        });
+
+        const isNowCompleted = newChapters.every(c => c.isRead && c.notesTaken);
+        if (isNowCompleted !== plan.isCompleted) {
+           plan.isCompleted = isNowCompleted;
+           planUpdated = true;
+        }
+
+        if (planUpdated) {
+           plan.chapters = newChapters;
+           updated = true;
+        }
+      }
+      return plan;
+    });
+
+    if (updated) {
+       await db.roadmaps.update(rId, { dailyPlans: newPlans });
+    }
+  };
 
   useEffect(() => {
     const loadChapter = async () => {
@@ -47,6 +102,11 @@ export function Reader() {
           localStorage.setItem('reading_stats', JSON.stringify(stats));
           localStorage.setItem('reading_book_stats', JSON.stringify(bookStats));
       } catch(e) {}
+
+      // Mark as read in Roadmap if active
+      if (roadmapId && planDay) {
+         await checkAndMarkRoadmapContext('read');
+      }
     };
     loadChapter();
   }, [book, currentChapter, version]);
@@ -152,13 +212,22 @@ export function Reader() {
 
   const handleNoteSave = async (verseNum: number) => {
       const existing = await db.notes.where({ book, chapter: currentChapter, verse: verseNum }).first();
+      
+      const rId = roadmapId ? Number(roadmapId) : undefined;
+      const pDay = planDay ? Number(planDay) : undefined;
+
       if (noteDraft.trim() === "") {
          if (existing && existing.id) await db.notes.delete(existing.id);
       } else {
          if (existing && existing.id) {
-             await db.notes.update(existing.id, { text: noteDraft, timestamp: new Date().toISOString() });
+             await db.notes.update(existing.id, { text: noteDraft, timestamp: new Date().toISOString(), roadmapId: rId, roadmapDay: pDay });
          } else {
-             await db.notes.add({ book, chapter: currentChapter, verse: verseNum, text: noteDraft, timestamp: new Date().toISOString() });
+             await db.notes.add({ book, chapter: currentChapter, verse: verseNum, text: noteDraft, timestamp: new Date().toISOString(), roadmapId: rId, roadmapDay: pDay });
+         }
+         
+         // If they save a note and are in a roadmap, check off the note requirement
+         if (roadmapId && planDay) {
+             await checkAndMarkRoadmapContext('note');
          }
       }
       setComposingNoteForVerse(null);
@@ -326,6 +395,19 @@ export function Reader() {
           <Link to="/more" className="p-2"><Settings className="w-4 h-4 text-sacred-text-secondary hover:text-sacred-text-primary transition" /></Link>
         </div>
       </header>
+
+      {roadmapId && planDay && (
+        <div className="bg-sacred-gold/10 border-b border-sacred-gold/20 px-4 py-2 flex items-center justify-between text-xs font-sans tracking-wide">
+           <div className="flex items-center gap-2 text-sacred-gold">
+             <ListTodo className="w-4 h-4" />
+             <span className="uppercase font-bold">Goal active</span>
+             <span className="hidden sm:inline">| Take a note in this chapter to complete your daily requirement.</span>
+           </div>
+           <button onClick={() => navigate('/roadmap')} className="uppercase font-bold hover:text-sacred-gold transition px-2 py-1 bg-sacred-surface-dark border border-sacred-gold/20 rounded">
+             View Roadmap
+           </button>
+        </div>
+      )}
       
       {/* TTS Controls Panel */}
       {showTtsControls && (
