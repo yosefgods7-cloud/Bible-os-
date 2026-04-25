@@ -63,7 +63,7 @@ export function AiDeepDive() {
              className="w-full bg-sacred-surface-dark border border-sacred-gold/30 rounded-xl py-4 pl-4 pr-16 outline-none focus:border-sacred-gold transition shadow-xl font-sans"
            />
            <button 
-             onClick={handleAsk}
+             onClick={() => handleAsk()}
              disabled={loading}
              className="absolute right-2 top-1/2 -translate-y-1/2 bg-sacred-gold text-sacred-bg-dark p-2 rounded-lg hover:bg-sacred-gold-light transition disabled:opacity-50"
            >

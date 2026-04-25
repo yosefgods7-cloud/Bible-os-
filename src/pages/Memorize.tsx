@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, BrainCircuit, RefreshCw, X, Check, Save } from "lucide-react";
+import { ChevronLeft, BrainCircuit, RefreshCw, X, Check, Save, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, Flashcard } from "@/db";
