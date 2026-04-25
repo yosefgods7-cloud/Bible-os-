@@ -70,6 +70,7 @@ jobs:
       - name: Build Android APK
         run: |
           cd android
+          curl -sL -o gradle/wrapper/gradle-wrapper.jar "https://raw.githubusercontent.com/gradle/gradle/v8.7.0/gradle/wrapper/gradle-wrapper.jar"
           chmod +x ./gradlew
           ./gradlew assembleDebug
 
