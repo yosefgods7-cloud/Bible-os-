@@ -13,6 +13,7 @@ import { More } from '@/pages/More';
 import { Journal } from '@/pages/Journal';
 import { OfflineDictionary } from '@/pages/OfflineDictionary';
 import { AiDeepDive } from '@/pages/AiDeepDive';
+import { Memorize } from '@/pages/Memorize';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="journal" element={<Journal />} />
           <Route path="dictionary" element={<OfflineDictionary />} />
           <Route path="ai-deep-dive" element={<AiDeepDive />} />
+          <Route path="memorize" element={<Memorize />} />
         </Route>
         {/* Fullscreen pages like Reader */}
         <Route path="/read" element={<Reader />} />

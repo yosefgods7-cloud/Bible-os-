@@ -1,22 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, Search, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { askDeepDive } from "@/services/ai";
 import ReactMarkdown from 'react-markdown';
 
 export function AiDeepDive() {
-  const [query, setQuery] = useState("");
+  const location = useLocation();
+  const [query, setQuery] = useState(location.state?.initialQuery || "");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleAsk = async () => {
-    if (!query.trim()) return;
+  const handleAsk = async (q?: string) => {
+    const queryToAsk = q || query;
+    if (!queryToAsk.trim()) return;
+    
+    // clear the location state safely so we don't retrigger later when unmounting/remounting
+    if (location.state?.initialQuery) {
+      window.history.replaceState({}, document.title);
+    }
+    
     setLoading(true);
     setError("");
     setResponse("");
     try {
-      const res = await askDeepDive(query);
+      const res = await askDeepDive(queryToAsk);
       setResponse(res);
     } catch (e: any) {
       setError(e.message || "Failed to contact AI guide. Please check your connection or API key.");
@@ -24,6 +32,12 @@ export function AiDeepDive() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (location.state?.initialQuery) {
+       handleAsk(location.state.initialQuery);
+    }
+  }, []);
 
   return (
     <div className="flex flex-col flex-1 h-[100dvh] relative bg-sacred-bg-dark text-sacred-text-primary overflow-y-auto">

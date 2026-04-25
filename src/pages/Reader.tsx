@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, RoadmapDailyPlan } from "@/db";
-import { Sparkles, ChevronLeft, ChevronRight, Play, Settings, BookOpenText, Copy, Bookmark, Highlighter, Edit3, Speech, Pause, Languages, ListTodo } from "lucide-react";
+import { Sparkles, ChevronLeft, ChevronRight, Play, Settings, BookOpenText, Copy, Bookmark, Highlighter, Edit3, Speech, Pause, Languages, ListTodo, BrainCircuit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { explainVerse, generateDevotional, analyzeWord } from "@/services/ai";
 import { fetchAndCacheChapter, BIBLE_BOOKS } from "@/services/bible";
@@ -510,7 +510,7 @@ export function Reader() {
                      </div>
 
                      {/* Utility Tools Grid */}
-                     <div className="grid grid-cols-4 gap-2 pt-2 relative">
+                     <div className="grid grid-cols-5 gap-2 pt-2 relative">
                         <button onClick={(e) => { e.stopPropagation(); handleCopy(v.text, v.verse); }} className="flex flex-col items-center p-3 rounded-lg bg-sacred-bg-dark border border-sacred-surface-light/10 hover:border-sacred-gold/30 hover:text-sacred-gold transition group">
                            <Copy className="w-4 h-4 mb-2 text-sacred-text-secondary group-hover:text-sacred-gold" />
                            <span className="text-[10px] uppercase font-sans tracking-widest text-sacred-text-secondary group-hover:text-sacred-gold">Copy</span>
@@ -543,6 +543,14 @@ export function Reader() {
                         <button onClick={(e) => { e.stopPropagation(); handleNoteStart(v.verse); }} className="flex flex-col items-center p-3 rounded-lg bg-sacred-bg-dark border border-sacred-surface-light/10 hover:border-sacred-gold/30 hover:text-sacred-gold transition group">
                            <Edit3 className="w-4 h-4 mb-2 text-sacred-text-secondary group-hover:text-sacred-gold" />
                            <span className="text-[10px] uppercase font-sans tracking-widest text-sacred-text-secondary group-hover:text-sacred-gold">Note</span>
+                        </button>
+                        <button onClick={async (e) => { 
+                             e.stopPropagation(); 
+                             await db.flashcards.add({ book, chapter: currentChapter, verse: v.verse, text: v.text, nextReview: new Date().toISOString(), interval: 0, easeFactor: 2.5, repetitions: 0 });
+                             alert('Added to memorization deck!');
+                           }} className="flex flex-col items-center p-3 rounded-lg bg-sacred-bg-dark border border-sacred-surface-light/10 hover:border-sacred-gold/30 hover:text-sacred-gold transition group text-center leading-none">
+                           <BrainCircuit className="w-4 h-4 mb-2 text-sacred-text-secondary group-hover:text-sacred-gold" />
+                           <span className="text-[9px] uppercase font-sans tracking-widest text-sacred-text-secondary group-hover:text-sacred-gold mt-0.5">Memorize</span>
                         </button>
                      </div>
 

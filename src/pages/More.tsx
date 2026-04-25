@@ -363,6 +363,7 @@ export function More() {
     { name: 'Bible Versions', icon: Book, active: preferredVersion },
     { name: 'Lexicon Offline', icon: Languages, action: () => navigate('/dictionary') },
     { name: 'AI Deep Dive', icon: Search, action: () => navigate('/ai-deep-dive') },
+    { name: 'Memorization', icon: Book, action: () => navigate('/memorize') },
     { name: 'API Usage Tracker', icon: Activity },
     { name: 'Appearance', icon: Moon },
     { name: 'Export Data', icon: Download, action: handleExport },

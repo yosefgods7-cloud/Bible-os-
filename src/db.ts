@@ -84,6 +84,18 @@ export interface Roadmap {
   modules?: { day: number; chapterToRead: number }[];
 }
 
+export interface Flashcard {
+  id?: number;
+  book: string;
+  chapter: number;
+  verse: number;
+  text: string;
+  nextReview: string; // ISO date string
+  interval: number; // days till next review
+  easeFactor: number;
+  repetitions: number;
+}
+
 const db = new Dexie('BibleOSDatabase') as Dexie & {
   verses: EntityTable<BibleVerse, 'id'>;
   habits: EntityTable<UserHabits, 'id'>;
@@ -92,6 +104,7 @@ const db = new Dexie('BibleOSDatabase') as Dexie & {
   notes: EntityTable<Note, 'id'>;
   history: EntityTable<ReadingHistory, 'date'>;
   roadmaps: EntityTable<Roadmap, 'id'>;
+  flashcards: EntityTable<Flashcard, 'id'>;
 };
 
 // Schema declaration
@@ -123,6 +136,18 @@ db.version(3).stores({
 }).upgrade(async tx => {
   // Clear any partial Genesis 1 mock verses so they fully fetch from the API.
   await tx.table('verses').where({ book: 'Genesis', chapter: 1 }).delete();
+});
+
+// Upgraded schema 4
+db.version(4).stores({
+  verses: '++id, [version+book+chapter+verse], [version+book+chapter], version, book',
+  habits: 'id',
+  highlights: '++id, [book+chapter+verse]',
+  bookmarks: '++id, [book+chapter+verse]',
+  notes: '++id, [book+chapter+verse]',
+  history: 'date',
+  roadmaps: '++id, title',
+  flashcards: '++id, [book+chapter+verse], nextReview'
 });
 
 // Initialize habits if empty
